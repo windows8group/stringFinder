@@ -1,0 +1,14 @@
+[project]
+name = "stringfinder"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "darkdetect>=0.8.0",
+    "libtextworker",
+    "wxpython>=4.2.3",
+]
+
+[tool.uv.sources]
+libtextworker = { git = "https://gitlab.com/textworker/legacy-python/libtextworker" }
