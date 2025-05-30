@@ -10,6 +10,12 @@ Requires Python 3.1x with uv the package manager.
 
 \;\)
 
+Note: You better run with `python` instead of `uv`:
+
+```bash
+$ python -m src
+```
+
 ## TODO
 
 * Different output file
@@ -19,6 +25,9 @@ Requires Python 3.1x with uv the package manager.
 * A dictionary of output path objects for performance's sake
 * Reload on file system change
 * Colors because Win32 is still light on 11
+* Complete CLI support
+* Support for other languages
+* GitHub Actions
 
 The time has come to an end
 Yeah - this is what nature planned

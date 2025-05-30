@@ -29,7 +29,7 @@ class MSResRule(rules.ATranslateRule):
             else:
                 this.comments.append("")
 
-class MicroSuck(rules.ARule):
+class MicroSuck(rules.AInputRule, MSResRule):
     fileExt = [
         "cs",               # C#
         "cpp", "c",         # C++ implementations
@@ -38,12 +38,11 @@ class MicroSuck(rules.ARule):
         "xaml"              # XAML, XML but used to design UI
     ]
 
-    translateFileExt = [ "resx", "resw" ]
-
     isXAML: bool
 
     def __init__(this, input: str, isInputAFile: bool = True):
-        rules.ARule.__init__(this, input, isInputAFile)
+        rules.AInputRule.__init__(this, input, isInputAFile)
+        MSResRule.__init__(this)
 
         this.isXAML = isInputAFile and os.path.splitext(input)[1] == ".xaml"
 
@@ -56,24 +55,6 @@ class MicroSuck(rules.ARule):
                 this.InputStringGetter(f.read())
         else:
             this.InputStringGetter(input)
-
-    def TranslationGetter(this, obj: object):
-        assert isinstance(obj, ET.Element)
-
-        for child in obj.iter("data"):
-            this.names.append(str(child.attrib["name"]))
-
-            valueElm = child.find("value")
-            if valueElm is not None:
-                this.translations.append(str(valueElm.text))
-            else:
-                this.translations.append("")
-
-            commentElm = child.find("comment")
-            if commentElm is not None:
-                this.comments.append(str(commentElm.text))
-            else:
-                this.comments.append("")
 
     def InputStringGetter(this, obj: str):
         if this.isXAML:
@@ -92,4 +73,4 @@ class MicroSuck(rules.ARule):
                     continue
                 this.inputs.append(content)
         else:
-            rules.ARule.InputStringGetter(this, obj)
+            rules.AInputRule.InputStringGetter(this, obj)

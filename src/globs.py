@@ -1,4 +1,4 @@
-from funcs.rules import ATranslateRule
+from .funcs.rules import ATranslateRule
 
 filesToUse : set[str] = set()
 dirsToUse  : set[str] = set()
