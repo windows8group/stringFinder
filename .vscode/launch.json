@@ -1,0 +1,21 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Module",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src",
+            "args": ["src/main.py", "pyproject.toml", "src"]
+        },
+        {
+            "name": "Python Debugger: Module (no args)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src"
+        }
+    ]
+}
