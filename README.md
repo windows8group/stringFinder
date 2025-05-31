@@ -1,6 +1,6 @@
 # stringFinder
 
-\*Someone make a logo lol\*
+![stringFinder Logo](https://media.discordapp.net/attachments/1285281504397758538/1378325911828697150/Untitledk.jpg?ex=683c3189&is=683ae009&hm=4112e29bf5b62f617c6662e15fe59a5f0a56eceb19dbef246146d158eed9051d&=&format=webp)
 
 A tool to find localizable strings and maybe, apply them to your code.
 
@@ -14,7 +14,7 @@ Note: You better run with `python` instead of `uv`:
 
 ```bash
 $ python -m src
-```
+
 
 ## TODO
 
