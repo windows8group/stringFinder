@@ -10,27 +10,36 @@ def main():
     logger.info("The log file is %s", logpath)
     test_import("wx")
 
-    parser = argparse.ArgumentParser(sys.argv[0], description=
+    parser = argparse.ArgumentParser(sys.argv[0], epilog=
 """
 Finds all strings inside a code project, localize them.\n
-(C) 2025 Windows8Group the team.
+Made specifically for Windows applications.\n
+(C) 2025 Windows8Group the team.\n\n
+Some settings (in/out paths, languages) are saved to ~/.stringFinder/settings.json.
 """)
-    parser.add_argument("paths", nargs="*", help="file(s) and/or folder(s) to be used")
-    parser.add_argument("--string-char", "-c", const='"', nargs="?", metavar="CHAR",
-                        help = "Character used to mark a string (defaults to double quotes)")
-    parser.add_argument("--output", "-o", nargs=1, metavar="PATH", help = "Output file path")
-    parser.add_argument("--silent", "-s", const=False, nargs="?", metavar="BOOOLEAN", help="Do now show GUI")
+    parser.add_argument("paths", nargs="*", help="input files/folders/both")
+    parser.add_argument("--output", "-o", nargs=1, metavar="PATH", help="output directory", type=str)
+    parser.add_argument("--language", "-l", action="extend", type=str, metavar="LANGUAGE", help="languages", nargs="+")
+    parser.add_argument("--silent", "-s", const=False, nargs="?", metavar="BOOLEAN", help="do not show GUI")
 
     options: argparse.Namespace = parser.parse_args()
-    logger.info("Welcome to %s!", sys.argv[0])
+    logger.info("Main file: %s", sys.argv[0])
 
     for path in options.paths:
         if os.path.isfile(path):
             logger.info("%s is a file", path)
-            globs.filesToUse.add(path)
+            globs.settings.source_files.append(path)
         else:
             logger.info("%s is a directory", path)
-            globs.dirsToUse.add(path)
+            globs.settings.source_dirs.append(path)
+    
+    if options.output:
+        logger.info("Output directory: %s", options.output)
+        globs.settings.output_dir = options.output
+    
+    if options.language:
+        globs.settings.languages = options.languages
+        logger.info(f"Languages: {options.languages}")
     
     if not bool(options.silent):
         app = App(clearSigInt=True)

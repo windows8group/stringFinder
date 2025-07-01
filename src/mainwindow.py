@@ -1,5 +1,6 @@
 import wx
-import wx.propgrid
+
+from src.funcs.reader import GetLanguagesList
 from . import globs
 from .views.unnamed import unnamedView
 from libtextworker.interface.wx.about import AboutDialog
@@ -27,6 +28,7 @@ class MainWindow(wx.Frame):
         this.PopulateTheMenuBar()
         this.SetupStatusBar()
 
+#region Content fillers
     def RepopulateContent(this, evt: FilesUpdatedEvent | DirsUpdatedEvent | OutputUpdatedEvent): # type: ignore
         if isinstance(evt, FilesUpdatedEvent):
             for path in evt.paths:
@@ -42,77 +44,14 @@ class MainWindow(wx.Frame):
             this.filesBook.DeleteAllPages()
             this.dirsBook.DeleteAllPages()
 
-            for file in globs.filesToUse:
+            for file in globs.settings.source_files:
                 this.filesBook.AddPage(unnamedView(this.filesBook, file), file)
 
-            for dir in globs.dirsToUse:
+            for dir in globs.settings.source_dirs:
                 this.dirsBook.AddPage(wx.Panel(this.dirsBook), dir)
             
-            this.StatusBar.SetStatusText(f"Output file: {globs.outputPath if globs.outputPath else 'Not set'}", 0)
-    
-    def PopulateTheMenuBar(this):
-        menubar = wx.MenuBar()
-        menubar.Append(CreateMenu(this,
-            [
-                (wx.ID_FILE, "Open file(s)", "", lambda _: this.OpenFileDlg(), wx.ITEM_NORMAL),
-                (wx.ID_OPEN, "Open folder(s)", "", lambda _: this.OpenDirDlg(), wx.ITEM_NORMAL),
-                (wx.ID_EXIT, "Exit", "Quit the application", lambda _: this.TryToExit(), wx.ITEM_NORMAL)
-            ]
-            ), "File"
-        )
-        menubar.Append(CreateMenu(this,
-            [
-                (wx.ID_ABOUT, "About", "", lambda _: this.ShowAboutDlg(), wx.ITEM_NORMAL)
-            ]
-            ), "Help"
-        )
-        this.SetMenuBar(menubar)
-    
-    def SetupStatusBar(this):
-        statusBar = wx.StatusBar(this)
-        statusBar.SetFieldsCount(2)
-        statusBar.SetStatusText(f"Output: {globs.outputPath if globs.outputPath else 'Not set'}", 0)
-        this.SetStatusBar(statusBar)
+            this.StatusBar.SetStatusText(f"Output file: {globs.settings.output_dir}", 0)    
 
-    def TryToExit(this):
-        ...
-
-    def ShowAboutDlg(this):
-        dlg = AboutDialog()
-        dlg.SetDevelopers(["Windows8Group"])
-        dlg.SetCopyright("(C) 2025 Windows8Group")
-        dlg.SetName("stringFinder")
-        dlg.ShowBox(this)
-    
-    def OpenFileDlg(this):
-        with wx.FileDialog(this, style=wx.FD_FILE_MUST_EXIST | wx.FD_OPEN | wx.FD_MULTIPLE) as fileDlg:
-            if fileDlg.ShowModal() == wx.ID_CANCEL:
-                return
-            
-            globs.filesToUse.update(fileDlg.GetPaths())
-            this.GetOutputPaths()
-            wx.PostEvent(this.filesBook, FilesUpdatedEvent(paths = fileDlg.GetPaths()))
-    
-    def OpenDirDlg(this):
-        with wx.DirDialog(this, style=wx.DD_NEW_DIR_BUTTON | wx.DD_DIR_MUST_EXIST | wx.DD_MULTIPLE) as dirDlg:
-            if dirDlg.ShowModal() == wx.ID_CANCEL:
-                return
-            
-            globs.dirsToUse.update(dirDlg.GetPaths())
-            this.GetOutputPaths()
-            wx.PostEvent(this.filesBook, DirsUpdatedEvent(paths = dirDlg.GetPaths()))
-    
-    def GetOutputPaths(this):
-        if (not globs.outputPath) or \
-           (wx.MessageBox("Choose output file?", "Question",
-                          style = wx.YES_NO | wx.CENTRE, parent = this) == wx.ID_YES):
-            with wx.FileDialog(this, style=wx.FD_FILE_MUST_EXIST | wx.FD_OPEN) as fileDlg2:
-                if fileDlg2.ShowModal() == wx.ID_CANCEL:
-                    return
-                
-                globs.outputPath = fileDlg2.GetPath()
-                wx.PostEvent(this, OutputUpdatedEvent())
-    
     def PopulateBookContents(this):
         sz = wx.BoxSizer()
         notebook = wx.Notebook(this)
@@ -128,7 +67,7 @@ class MainWindow(wx.Frame):
                 this.StatusBar.SetStatusText(this.filesBook.GetPageText(this.filesBook.GetSelection()), 1)
         )
 
-        for file in globs.filesToUse:
+        for file in globs.settings.source_files:
             this.filesBook.AddPage(unnamedView(this.filesBook, file), file)
 
         notebook.AddPage(this.filesBook, "Input files")
@@ -139,7 +78,7 @@ class MainWindow(wx.Frame):
         dirCtrl = DirCtrl(this.dirsBook, w_styles=DC_HIDEROOT | DC_USEICON)
         # dirCtrl.Bind(wx.EVT_DIRCTRL_SELECTIONCHANGED, lambda evt: print(dir(evt)))
         
-        for dir in globs.dirsToUse:
+        for dir in globs.settings.source_dirs:
             dirCtrl.SetFolder(dir)
         
         # TODO: Handle directory events
@@ -157,3 +96,91 @@ class MainWindow(wx.Frame):
         sz.Add(notebook, 1, wx.EXPAND)
         this.SetSizerAndFit(sz)
         notebook.Show()
+    
+    def PopulateTheMenuBar(this):
+        menubar = wx.MenuBar()
+        menubar.Append(CreateMenu(this,
+            [
+                (wx.ID_FILE, "Open file(s)", "", lambda _: this.OpenFileDlg(), wx.ITEM_NORMAL),
+                (wx.ID_OPEN, "Open folder(s)", "", lambda _: this.OpenDirDlg(), wx.ITEM_NORMAL),
+                (wx.ID_ANY,  "Select output folder", "", lambda _: this.GetOutputPaths(), wx.ITEM_NORMAL),
+                (wx.ID_EXIT, "Exit", "Quit the application", lambda _: this.TryToExit(), wx.ITEM_NORMAL)
+            ]
+            ), "File"
+        )
+
+        locMenu = CreateMenu(this, [
+            (500, "Force scan for languages", "No confirmation dialog!", \
+             lambda _: this.ScanForLanguages(), wx.ITEM_NORMAL)
+        ])
+
+        locMenu.AppendSubMenu(CreateMenu(this,
+            [ (1000 + i, globs.settings.languages[i], "", lambda _: (), wx.ITEM_NORMAL) for i in range(len(globs.settings.languages)) ]
+        ), "Languages")
+
+        menubar.Append(locMenu, "Localizations")
+
+        menubar.Append(CreateMenu(this,
+            [
+                (wx.ID_ABOUT, "About", "", lambda _: this.ShowAboutDlg(), wx.ITEM_NORMAL)
+            ]
+            ), "Help"
+        )
+        this.SetMenuBar(menubar)
+    
+    def SetupStatusBar(this):
+        statusBar = wx.StatusBar(this)
+        statusBar.SetFieldsCount(2)
+        statusBar.SetStatusText(f"Output directory: {globs.settings.output_dir}", 0)
+        statusBar.SetStatusText(f"Current language: {...}", 1)
+
+        this.SetStatusBar(statusBar)
+#endregion
+
+    def TryToExit(this):
+        if wx.MessageBox("Save current settings? They are in+output paths, languages, and maybe more.", "Question",
+                          style = wx.YES_NO | wx.CENTRE, parent = this) == wx.ID_YES:
+            globs.settings.Update_And_Write()
+
+    def ScanForLanguages(this):
+        if len(globs.settings.languages) == 0 or wx.MessageBox(
+            "This will override the current languages list!", "Confirmation",
+            parent=this, style=wx.YES_NO | wx.CENTRE) == wx.ID_YES:
+            globs.settings.languages = [l for l in GetLanguagesList()]
+
+
+#region Dialogs
+    def ShowAboutDlg(this):
+        dlg = AboutDialog()
+        dlg.SetDevelopers(["Windows8Group"])
+        dlg.SetCopyright("(C) 2025 Windows8Group")
+        dlg.SetName("stringFinder")
+        dlg.ShowBox(this)
+    
+    def OpenFileDlg(this):
+        with wx.FileDialog(this, style=wx.FD_FILE_MUST_EXIST | wx.FD_OPEN | wx.FD_MULTIPLE) as fileDlg:
+            if fileDlg.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            globs.settings.source_files = fileDlg.GetPaths()
+            this.GetOutputPaths()
+            wx.PostEvent(this.filesBook, FilesUpdatedEvent(paths = fileDlg.GetPaths()))
+    
+    def OpenDirDlg(this):
+        with wx.DirDialog(this, style=wx.DD_NEW_DIR_BUTTON | wx.DD_DIR_MUST_EXIST | wx.DD_MULTIPLE) as dirDlg:
+            if dirDlg.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            globs.settings.source_dirs = dirDlg.GetPaths()
+            this.GetOutputPaths()
+            wx.PostEvent(this.filesBook, DirsUpdatedEvent(paths = dirDlg.GetPaths()))
+    
+    def GetOutputPaths(this):
+        with wx.DirDialog(this, style=wx.DD_DIR_MUST_EXIST | wx.DD_NEW_DIR_BUTTON) as dirDlg:
+            if dirDlg.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            globs.settings.output_dir = dirDlg.GetPath()
+            this.ScanForLanguages()
+            wx.PostEvent(this, OutputUpdatedEvent())
+#endregion
