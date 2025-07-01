@@ -24,6 +24,7 @@ class MainWindow(wx.Frame):
         this.SetMinSize(wx.Size(800, 600))
 
         this.Bind(EVT_OUTPUT_CHANGED, this.RepopulateContent)
+        this.Bind(wx.EVT_CLOSE, lambda _: this.TryToExit)
         this.PopulateBookContents()
         this.PopulateTheMenuBar()
         this.SetupStatusBar()
